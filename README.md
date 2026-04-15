@@ -1,30 +1,41 @@
 # AWS Multi-AZ Infrastructure Deployment
 
-AWS infrastructure deployment covering compute, load balancing, networking, storage, Infrastructure as Code, static hosting, and container workloads.
+## Overview
 
-## AWS Services Used
+Designed and implemented a production-style AWS infrastructure environment demonstrating compute automation, load balancing, scalable architecture, networking segmentation, storage integration, Infrastructure as Code, and containerized workload deployment.
 
-- Amazon EC2
-- Application Load Balancer
-- Auto Scaling
-- Amazon CloudWatch
-- Amazon VPC
-- Amazon EBS
-- Amazon S3
-- AWS CloudFormation
-- Amazon ECS (Fargate)
+This project simulates real-world cloud infrastructure design with emphasis on high availability, scalability, and controlled network boundaries.
 
-## Scope
+---
 
-This repository documents the deployment and validation of multiple AWS services across compute, networking, storage, Infrastructure as Code, and container runtime layers.
+## Architecture Components
 
-The environment included automated EC2 provisioning, multi-AZ traffic distribution through an Application Load Balancer, dynamic Auto Scaling, structured VPC design, EBS storage attachment, S3 static website hosting, CloudFormation-based infrastructure deployment, and ECS Fargate workload execution.
+* Amazon EC2 (Compute)
+* Application Load Balancer (Traffic Distribution)
+* Auto Scaling Group (Elastic Scaling)
+* Amazon VPC (Network Isolation)
+* Public & Private Subnets (Multi-AZ)
+* Internet Gateway (External Connectivity)
+* Route Tables (Traffic Control)
+* Amazon EBS (Persistent Storage)
+* Amazon S3 (Static Hosting)
+* AWS CloudFormation (Infrastructure as Code)
+* Amazon ECS with Fargate (Container Workloads)
+* Amazon CloudWatch (Monitoring & Scaling Triggers)
 
-## EC2 Automation and Load Distribution
+---
 
-EC2 instances were initialized using user data to provision an Apache web server at launch. Instance-specific context was rendered using the Instance Metadata Service (IMDS), allowing runtime behavior to be validated directly from the web layer.
+## EC2 Initialization and Load Distribution
 
-The architecture was then extended with an Application Load Balancer and dynamic Auto Scaling. Load generation triggered CloudWatch-based scale-out activity and traffic distribution across multiple Availability Zones.
+Automated EC2 instance provisioning using user data scripts to install and configure an Apache web server during instance launch.
+
+Integrated Instance Metadata Service (IMDS) to dynamically render instance-specific information at runtime, enabling validation of instance identity across Availability Zones.
+
+Expanded the architecture using an Application Load Balancer and Auto Scaling Group to distribute incoming traffic and maintain service availability under load conditions.
+
+Load testing triggered CloudWatch metrics, resulting in automatic scaling and balanced traffic distribution across multiple Availability Zones.
+
+### Validation
 
 ![Apache IMDS Output](images/apache-imds-output.png)
 
@@ -33,31 +44,26 @@ The architecture was then extended with an Application Load Balancer and dynamic
 ![ALB Traffic us-east-1c](images/alb-traffic-us-east-1c.png)
 ![ALB Traffic us-east-1d](images/alb-traffic-us-east-1d.png)
 
-![EC2 Instances Multi AZ](images/ec2-instances-multi-az.png)
+![EC2 Multi-AZ Deployment](images/ec2-instances-multi-az.png)
 
-## EBS Volume Integration
+---
 
-Additional block storage was provisioned using a GP3 EBS volume and attached to a running EC2 instance. Device visibility was confirmed at the operating system level, followed by filesystem creation, mount validation, and file write verification.
+## Network Architecture (VPC Design)
 
-![EBS Volumes GP3](images/ebs-volumes-gp3.png)
-![lsblk xvdb Attached](images/lsblk-xvdb-attached.png)
-![Filesystem Write Test](images/filesystem-write-test.png)
+Implemented a custom Amazon VPC with structured network segmentation across public and private subnets distributed over multiple Availability Zones.
 
-## S3 Static Website Hosting
+Configured dedicated route tables to control traffic flow between subnet tiers and external networks.
 
-Static website hosting was configured on Amazon S3 using a dedicated bucket and controlled public object access. Website assets were uploaded and validated through the S3 website endpoint, confirming correct object delivery from client to service endpoint.
+Established an Internet Gateway and configured explicit `0.0.0.0/0` routing for public subnets, while maintaining isolation for private subnets.
 
-## CloudFormation Deployment
+### Key Design Decisions
 
-Infrastructure components were provisioned and updated through CloudFormation templates written in YAML. Stack operations included EC2, security groups, EBS attachment, S3 integration, and VPC deployment with routing components.
+* CIDR-based IP allocation strategy for scalability
+* Separation of public and private workloads
+* Controlled ingress/egress routing
+* Multi-AZ subnet distribution for high availability
 
-![CloudFormation EC2 Stack Complete](images/cfn-ec2-stack-complete.png)
-![CloudFormation EC2 Instance Running](images/cfn-ec2-instance-running.png)
-![CloudFormation VPC Stack Complete](images/cfn-vpc-stack-complete.png)
-
-## VPC Architecture and Routing
-
-A custom Amazon VPC was implemented with segmented public and private subnets across multiple Availability Zones. Routing behavior was controlled through dedicated route tables and Internet Gateway integration.
+### Validation
 
 ![VPC Resource Map Manual](images/vpc-resource-map-manual.jpeg)
 ![VPC Resource Map CloudFormation](images/vpc-resource-map-cloudformation.png)
@@ -66,23 +72,94 @@ A custom Amazon VPC was implemented with segmented public and private subnets ac
 ![Public Route Table IGW](images/public-route-table-igw.jpeg)
 ![Internet Gateways](images/internet-gateways.png)
 
-## ECS Fargate Deployment
+---
 
-A containerized workload was deployed on Amazon ECS using the Fargate launch type. The task definition used an nginx image with configured networking, security controls, and public endpoint validation.
+## Storage Integration (Amazon EBS)
 
-![ECS Clusters Overview](images/ecs-clusters-overview.png)
+Provisioned and attached a GP3 EBS volume to a running EC2 instance to demonstrate persistent storage integration.
+
+Validated device recognition at the OS level, created a filesystem, mounted it to `/data`, and verified read/write operations.
+
+### Key Observations
+
+* EBS volumes are Availability Zone scoped
+* Storage can be managed independently of compute lifecycle
+* Persistent data survives instance termination when configured accordingly
+
+### Validation
+
+![EBS Volume](images/ebs-volumes-gp3.png)
+![Block Device Attached](images/lsblk-xvdb-attached.png)
+![Filesystem Validation](images/filesystem-write-test.png)
+
+---
+
+## Static Website Hosting (Amazon S3)
+
+Configured static website hosting using Amazon S3 by enabling website hosting and applying controlled public access policies.
+
+Uploaded and validated static content delivery through the S3 website endpoint.
+
+### Key Outcomes
+
+* Direct object delivery from S3 to client browser
+* Simplified hosting without server management
+* Controlled public access using bucket policies
+
+---
+
+## Infrastructure as Code (AWS CloudFormation)
+
+Implemented infrastructure provisioning using AWS CloudFormation templates written in YAML.
+
+Deployed EC2, VPC, security groups, EBS volumes, and S3 resources through stack operations.
+
+Used Change Sets to safely introduce infrastructure updates.
+
+### Key Benefits
+
+* Declarative infrastructure management
+* Repeatable and consistent deployments
+* Reduced manual configuration errors
+
+### Validation
+
+![CFN EC2 Stack](images/cfn-ec2-stack-complete.png)
+![CFN Instance Running](images/cfn-ec2-instance-running.png)
+![CFN VPC Stack](images/cfn-vpc-stack-complete.png)
+
+---
+
+## Containerized Workload (ECS Fargate)
+
+Deployed a containerized application using Amazon ECS with the Fargate launch type.
+
+Configured task definitions, networking, and security settings without managing underlying compute infrastructure.
+
+Validated application availability through public endpoint access.
+
+### Key Advantages
+
+* No server management required
+* Scalable container execution
+* Integrated networking and security controls
+
+### Validation
+
+![ECS Cluster](images/ecs-clusters-overview.png)
 ![ECS Task Running](images/ecs-task-running.png)
-![ECS Task Networking](images/ecs-task-networking.png)
-![Nginx Endpoint Validation](images/nginx-endpoint-validation.png)
+![ECS Networking](images/ecs-task-networking.png)
+![Endpoint Validation](images/nginx-endpoint-validation.png)
+
+---
 
 ## Key Technical Outcomes
 
-- Automated EC2 initialization using user data
-- Runtime metadata validation through IMDS
-- ALB-based traffic distribution across multiple Availability Zones
-- Dynamic scale-out behavior through CloudWatch and Auto Scaling
-- Structured VPC segmentation with controlled public routing
-- EBS attachment and filesystem validation at Linux OS level
-- Static website hosting through Amazon S3
-- Declarative infrastructure deployment using CloudFormation
-- Container execution on ECS Fargate without instance management
+* Automated infrastructure provisioning using user data and CloudFormation
+* Implemented high availability using multi-AZ architecture
+* Achieved dynamic scaling using Auto Scaling and CloudWatch metrics
+* Designed structured and secure VPC networking
+* Integrated persistent storage with EC2 using EBS
+* Delivered static content via Amazon S3
+* Executed containerized workloads using ECS Fargate
+* Validated full end-to-end infrastructure deployment
